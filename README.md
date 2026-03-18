@@ -1,18 +1,28 @@
-# Complaint Desk System
+# 🚀 Complaint Desk System
 
-A MERN stack web application for managing user complaints efficiently.
+A full-stack MERN application to manage and track user complaints efficiently.
 
-## Features
-- User login & registration
-- Submit complaints
-- Admin dashboard
-- Complaint tracking system
+---
 
-## Tech Stack
+## 🔥 Features
+- 👤 User Registration & Login
+- 📝 Submit Complaints
+- 📊 Admin Dashboard
+- 🔍 Track Complaint Status
+
+---
+
+## 🛠️ Tech Stack
 - MongoDB
 - Express.js
 - React.js
 - Node.js
 
-## Author
-Krishnasri
+---
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/krishnasri27/complaint-desk.git
+cd complaint-desk
+npm install
