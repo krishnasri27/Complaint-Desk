@@ -1,0 +1,135 @@
+﻿
+> frontend@0.0.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 465 modules transformed.
+node.exe : [31mΓ£ù[39m 
+Build failed in 2.18s
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: ([31mΓ£  
+  ù[39m Build failed in 2   
+ .18s:String) [], RemoteE    
+xception
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+[31merror during build:
+[31msrc/App.jsx (7:40): 
+"HiDocumentSearch" is not 
+exported by "node_modules/rea
+ct-icons/hi2/index.mjs", 
+imported by 
+"src/App.jsx".[31m
+file: [36mC:/Users/Cigiri Kr
+ishnasri/.gemini/antigravity/
+brain/743c1edf-85cc-45ff-a9fe
+-e4f6eb3413a3/online complian
+t/frontend/src/App.jsx:7:40[
+31m
+[33m
+5:   HiShieldCheck, 
+HiOutlineSpeakerWave, 
+HiOutlineSpeakerXMark, 
+HiArrowLeft, 
+6:   HiVideoCamera, 
+HiChevronDown, HiChevronUp, 
+HiExclamationTriangle, 
+7:   HiOutlineMapPin, 
+HiOutlineMicrophone, 
+HiDocumentSearch, 
+HiUserCircle
+                             
+              ^
+8: } from 'react-icons/hi2';
+[31m
+    at getRollupError (file:/
+//C:/Users/Cigiri%20Krishnasr
+i/.gemini/antigravity/brain/7
+43c1edf-85cc-45ff-a9fe-e4f6eb
+3413a3/online%20compliant/fro
+ntend/node_modules/rollup/dis
+t/es/shared/parseAst.js:402:4
+1)
+    at error (file:///C:/User
+s/Cigiri%20Krishnasri/.gemini
+/antigravity/brain/743c1edf-8
+5cc-45ff-a9fe-e4f6eb3413a3/on
+line%20compliant/frontend/nod
+e_modules/rollup/dist/es/shar
+ed/parseAst.js:398:42)
+    at Module.error (file:///
+C:/Users/Cigiri%20Krishnasri/
+.gemini/antigravity/brain/743
+c1edf-85cc-45ff-a9fe-e4f6eb34
+13a3/online%20compliant/front
+end/node_modules/rollup/dist/
+es/shared/node-entry.js:17040
+:16)
+    at Module.traceVariable (
+file:///C:/Users/Cigiri%20Kri
+shnasri/.gemini/antigravity/b
+rain/743c1edf-85cc-45ff-a9fe-
+e4f6eb3413a3/online%20complia
+nt/frontend/node_modules/roll
+up/dist/es/shared/node-entry.
+js:17452:29)
+    at 
+ModuleScope.findVariable (fil
+e:///C:/Users/Cigiri%20Krishn
+asri/.gemini/antigravity/brai
+n/743c1edf-85cc-45ff-a9fe-e4f
+6eb3413a3/online%20compliant/
+frontend/node_modules/rollup/
+dist/es/shared/node-entry.js:
+15070:39)
+    at 
+FunctionScope.findVariable (f
+ile:///C:/Users/Cigiri%20Kris
+hnasri/.gemini/antigravity/br
+ain/743c1edf-85cc-45ff-a9fe-e
+4f6eb3413a3/online%20complian
+t/frontend/node_modules/rollu
+p/dist/es/shared/node-entry.j
+s:5673:38)
+    at FunctionBodyScope.find
+Variable (file:///C:/Users/Ci
+giri%20Krishnasri/.gemini/ant
+igravity/brain/743c1edf-85cc-
+45ff-a9fe-e4f6eb3413a3/online
+%20compliant/frontend/node_mo
+dules/rollup/dist/es/shared/n
+ode-entry.js:5673:38)
+    at Identifier.bind (file:
+///C:/Users/Cigiri%20Krishnas
+ri/.gemini/antigravity/brain/
+743c1edf-85cc-45ff-a9fe-e4f6e
+b3413a3/online%20compliant/fr
+ontend/node_modules/rollup/di
+st/es/shared/node-entry.js:54
+47:40)
+    at CallExpression.bind (f
+ile:///C:/Users/Cigiri%20Kris
+hnasri/.gemini/antigravity/br
+ain/743c1edf-85cc-45ff-a9fe-e
+4f6eb3413a3/online%20complian
+t/frontend/node_modules/rollu
+p/dist/es/shared/node-entry.j
+s:2825:28)
+    at CallExpression.bind (f
+ile:///C:/Users/Cigiri%20Kris
+hnasri/.gemini/antigravity/br
+ain/743c1edf-85cc-45ff-a9fe-e
+4f6eb3413a3/online%20complian
+t/frontend/node_modules/rollu
+p/dist/es/shared/node-entry.j
+s:12179:15)[39m

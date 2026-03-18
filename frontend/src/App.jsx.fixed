@@ -1,0 +1,776 @@
+�/* eslint-disable no-unused-vars */
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  HiShieldCheck, HiOutlineSpeakerWave, HiOutlineSpeakerXMark, HiArrowLeft, 
+  HiVideoCamera, HiChevronDown, HiChevronUp, HiExclamationTriangle, 
+  HiOutlineMapPin, HiOutlineMicrophone, HiOutlineDocumentText, HiOutlineUserCircle
+} from 'react-icons/hi2';
+import { speak } from './utils/speech';
+
+// --- Constants ----------------------------------------------------------------
+const glassCard = "bg-white/60 backdrop-blur-[10px] border border-white/50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] rounded-[30px] p-8 md:p-12 relative z-10 w-full";
+
+// FEATURE 4 � Proper Devanagari Hindi welcome script
+const hindiAudioScript = "नमस्त�!! र�Sिस्�x्र�!शन प्र�"्रिया शुर� �"रन�! �"�! लिए �&पना नाम, फ�9न न�बर, ��म�!ल �र OTP भर�!�। सबमि�x �"रन�! �"�! बाद �&पन६ ��म�!ल �a�!�" �"र�!�। हमन�! वहा� ए�" व�!रिफि�"�!शन लि��" भ�!�Sा ह��। ध्यान द�!�: र�Sिस्�x्र�!शन तभ६ प�रा ह�9�ा �Sब � प �0स लि��" पर �"्लि�" �"र�!���! �र � प�"ा फ�9न न�बर सिस्�xम स�! म���a ह�9�ा। हर प�!�S पर प६�:�! �Sान�! �"�! लिए 'Back' ब�xन �"ा वि�"ल्प दिया �या ह��।";
+const hinglishAudioScript = hindiAudioScript; // kept for backward compat
+
+// FEATURE 3 � language ? BCP-47 code map used by speak()
+const langCodeMap = { en: "en-US", hi: "hi-IN", te: "te-IN" };
+
+// --- Translations -------------------------------------------------------------
+const t = {
+  en: {
+    appTitle: "Complaint Desk",
+    welcome: "Welcome securely. Please log in or register.",
+    userRole: "User", adminRole: "Admin",
+    loginIdentifier: "Email or Phone", password: "Password",
+    loginSecurely: "Login Securely", registerNew: "Register New Account",
+    demoTitle: "Help / Demo", demoDesc: "Watch how to use the system",
+    createAccount: "Create Account", step1: "Step 1: Enter your primary details.",
+    fullName: "Full Name", phone1: "Phone Number", email2: "Email Address",
+    sendOtp: "Send OTP", verifyPhone: "Verify Phone", otpSent: "We sent an OTP to",
+    verifyAndLink: "Verify & Register", checkEmail: "Check Your Email",
+    channel1Ver: "Registration Pending", emailSent: "An activation link has been sent to",
+    finalEmail: "Click it to finalize registration.", awaitingClick: "Awaiting Email Verification",
+    back: "Back", submitTitle: "Submit a Complaint", titleLabel: "Title",
+    catLabel: "Category (No Infrastructure)", descLabel: "Description",
+    locBtn: "Get Exact Location", locGot: "Location Detected",
+    audioLabel: "Record Audio Evidence", audioRecorded: "Audio Recorded",
+    evidenceLabel: "Upload Evidence (Images, Video, Docs)",
+    anonymousLabel: "Submit Anonymously", submitBtn: "Submit Complaint",
+    trackTitle: "Track Complaint", enterComplaintId: "Enter Complaint ID",
+    trackBtn: "Track Status",
+    categories: ["Theft", "Violence", "Harassment", "Corruption", "Suspicious Activity"],
+    dashTitle: "Admin Dashboard", noIssues: "No complaints found.", loc: "Location", statusLabel: "Status",
+    // FEATURE 2 & 3 � per-field audio instructions
+    audioInstructions: {
+      pageWelcome: "Welcome to Complaint Desk. Click on any field to hear instructions for filling the form.",
+      identifier: "Enter your registered email address or phone number.",
+      password:   "Enter your secure password.",
+      fullName:   "Enter your full name as it appears on your ID.",
+      phone:      "Enter the mobile phone number you want to register with.",
+      email:      "Enter your email address. A verification link will be sent here.",
+      otp:        "Enter the 6-digit OTP sent to your phone.",
+      title:      "Write a short title that describes your complaint.",
+      category:   "Choose the category that best matches your complaint.",
+      description:"Describe your complaint in detail. Include what happened, when and where.",
+      location:   "Click this button to automatically capture your current GPS location.",
+      audioRec:   "Click to start recording your verbal statement as audio evidence.",
+      evidence:   "Upload photos, videos, documents, or audio files as evidence.",
+      anonymous:  "Check this box if you want to submit the complaint without revealing your identity.",
+      trackId:    "Enter the unique complaint ID you received after submitting, for example: CD-2026-123456.",
+    }
+  },
+  hi: {
+    appTitle: "Complaint Desk",
+    welcome: "सुर�"्षित स्वा�त ह��। ल�0�िन �"र�!� या र�Sिस्�xर �"र�!�।",
+    userRole: "य��S़र", adminRole: "एडमिन",
+    loginIdentifier: "��म�!ल या फ�9न", password: "पासवर्ड",
+    loginSecurely: "सुर�"्षित ल�0�िन �"र�!�", registerNew: "नया �ाता बनाए�",
+    demoTitle: "सहायता / ड�!म�9", demoDesc: "सिस्�xम �"ा �0पय�9� द�!��!�",
+    createAccount: "�ाता बनाए�", step1: "पहला �"दम: �&पन६ �Sान�"ार६ भर�!�।",
+    fullName: "प�रा नाम", phone1: "फ�9न न�बर", email2: "��म�!ल पता",
+    sendOtp: "OTP भ�!�S�!�", verifyPhone: "फ�9न सत्यापित �"र�!�", otpSent: "हमन�! OTP भ�!�Sा ह��",
+    verifyAndLink: "सत्यापित �"र�!� �र र�Sिस्�xर �"र�!�", checkEmail: "�&पना ��म�!ल �Sा��a�!�",
+    channel1Ver: "र�Sिस्�x्र�!शन ल�बित ह��", emailSent: "ए�" लि��" भ�!�Sा �या ह��",
+    finalEmail: "र�Sिस्�x्र�!शन प�रा �"रन�! �"�! लिए �"्लि�" �"र�!�।", awaitingClick: "��म�!ल सत्यापन �"ा �!�त�S़ार",
+    back: "प६�:�! �Sाए�", submitTitle: "शि�"ायत दर्�S �"र�!�", titleLabel: "श६र्ष�"",
+    catLabel: "श्र�!ण६", descLabel: "विवरण",
+    locBtn: "स्थान प्राप्त �"र�!�", locGot: "स्थान मिल �या",
+    audioLabel: "�डिय�9 सा�"्ष्य रि�"�0र्ड �"र�!�", audioRecorded: "�डिय�9 रि�"�0र्ड ह�9 �या",
+    evidenceLabel: "सा�"्ष्य �&पल�9ड �"र�!� (फ�9�x�9, व६डिय�9, दस्ताव�!�S़)",
+    anonymousLabel: "�ुमनाम शि�"ायत दर्�S �"र�!�", submitBtn: "�Sमा �"र�!�",
+    trackTitle: "शि�"ायत �x्र���" �"र�!�", enterComplaintId: "शि�"ायत ID दर्�S �"र�!�",
+    trackBtn: "स्थिति �Sा��a�!�",
+    categories: ["Theft", "Violence", "Harassment", "Corruption", "Suspicious Activity"],
+    dashTitle: "एडमिन ड��शब�9र्ड", noIssues: "�"�9�� शि�"ायत नह६� मिल६।", loc: "स्थान", statusLabel: "स्थिति",
+    audioInstructions: {
+      pageWelcome: "Complaint Desk म�!� � प�"ा स्वा�त ह��। �"िस६ भ६ फ६ल्ड पर �"्लि�" �"र�!� �र फ�0र्म भरन�! �"�! निर्द�!श सुन�!�।",
+      identifier: "�&पना प��S६�"॒त ��म�!ल पता या फ�9न न�बर दर्�S �"र�!�।",
+      password:   "�&पना सुर�"्षित पासवर्ड दर्�S �"र�!�।",
+      fullName:   "�&पना प�रा नाम दर्�S �"र�!� �S��सा � प�"�! � ��ड६ पर ह��।",
+      phone:      "वह म�9बा�!ल न�बर दर्�S �"र�!� �Sिसस�! � प र�Sिस्�xर �"रना �aाहत�! ह���।",
+      email:      "�&पना ��म�!ल पता दर्�S �"र�!�। यहा� ए�" व�!रिफि�"�!शन लि��" भ�!�Sा �Sाए�ा।",
+      otp:        "�&पन�! फ�9न पर भ�!�Sा �या 6 �&��"�9� �"ा OTP दर्�S �"र�!�।",
+      title:      "�&पन६ शि�"ायत �"ा ए�" स��"्षिप्त श६र्ष�" लि��!�।",
+      category:   "वह श्र�!ण६ �aुन�!� �S�9 � प�"६ शि�"ायत स�! सबस�! �&�a्�:६ तरह म�!ल �ात६ ह�9।",
+      description:"�&पन६ शि�"ायत �"ा विस्त॒त विवरण द�!�। �"्या हु� , �"ब �र �"हाँ, यह लि��!�।",
+      location:   "�&पना वर्तमान GPS स्थान स्व�aालित र�प स�! रि�"�0र्ड �"रन�! �"�! लिए �!स ब�xन पर �"्लि�" �"र�!�।",
+      audioRec:   "�&पना म�R�ि�" बयान �डिय�9 सा�"्ष्य �"�! र�प म�!� रि�"�0र्ड �"रन�! �"�! लिए �"्लि�" �"र�!�।",
+      evidence:   "सा�"्ष्य �"�! र�प म�!� फ�9�x�9, व६डिय�9, दस्ताव�!�S़ या �डिय�9 फ़ा�!ल�!� �&पल�9ड �"र�!�।",
+      anonymous:  "यदि � प �&पन६ पह�aान �:ुपा�"र शि�"ायत दर्�S �"रना �aाहत�! ह��� त�9 यह ब�0�"्स �a�!�" �"र�!�।",
+      trackId:    "�Sमा �"रन�! �"�! बाद मिला शि�"ायत ID दर्�S �"र�!�, �S��स�!: CD-2026-123456।",
+    }
+  },
+  te: {
+    appTitle: "�"�ప్ల����x్ డ� స్�"్",
+    welcome: "సుర�"్షిత స్వా�త�. లా�ిన్ �a�!య�డి ల�!దా నమ�9దు �a�!య�డి.",
+    userRole: "య��Sర్", adminRole: "�&డ్మిన్",
+    loginIdentifier: "�!మ� యిల్ ల�!దా ఫ�9న్", password: "పాస్వర్డ్",
+    loginSecurely: "సుర�"్షిత��ా లా�ిన్ �a�!య�డి", registerNew: "�"�`త్త �ాతా స౒ష్�xి��a�డి",
+    demoTitle: "సహాయ� / డ� మ�9", demoDesc: "�}లా �0పయ�9�ి��aాల�9 �a�డ�డి",
+    createAccount: "�ాతా స౒ష్�xి��a�డి", step1: "దశ 1: మ౬ వివరాలను నమ�9దు �a�!య�డి.",
+    fullName: "ప�ర్తి ప�!రు", phone1: "ఫ�9న్ న�బర్", email2: "�!మ� యిల్ �aిరునామా",
+    sendOtp: "OTP ప�ప�డి", verifyPhone: "ఫ�9న్ ధ౒వ౬�"రి��a�డి", otpSent: "మ�!ము OTP ప�పాము",
+    verifyAndLink: "ధ౒వ౬�"రి��a�డి మరియు నమ�9దు �a�!య�డి", checkEmail: "మ౬ �!మ� యిల్ తని�౬ �a�!య�డి",
+    channel1Ver: "నమ�9దు ప� �డి��్�Rల�9 �0�ది", emailSent: "యా�"్�xివ�!షన్ లి��"్ ప�పబడి�ది",
+    finalEmail: "నమ�9దు ప�ర్తి �a�!యడాని�"ి �"్లి�"్ �a�!య�డి.", awaitingClick: "�!మ� యిల్ �"్లి�"్ �"�9స� వ�!�aి �0�ది",
+    back: "వ� ను�"�"ు", submitTitle: "ఫిర్యాదు సమర్పి��a�డి", titleLabel: "శ౬ర్షి�"",
+    catLabel: "వర్��", descLabel: "వివరణ",
+    locBtn: "స్థాన� ప�`�ద�డి", locGot: "స్థాన� ద�`రి�"ి�ది",
+    audioLabel: "� డియ�9 సా�"్ష్య� రి�"ార్డ్ �a�!య�డి", audioRecorded: "� డియ�9 రి�"ార్డ్ �a�!యబడి�ది",
+    evidenceLabel: "సా�"్ష్య� �&ప్�Rల�9డ్ �a�!య�డి (ఫ�9�x�9లు, వ౬డియ�9లు, పత్రాలు)",
+    anonymousLabel: "�&నామ�"��ా సమర్పి��a�డి", submitBtn: "సమర్పి��aు",
+    trackTitle: "ఫిర్యాదు �x్రా�"్ �a�!య�డి", enterComplaintId: "ఫిర్యాదు ID నమ�9దు �a�!య�డి",
+    trackBtn: "స్థితి తని�౬ �a�!య�డి",
+    categories: ["Theft", "Violence", "Harassment", "Corruption", "Suspicious Activity"],
+    dashTitle: "�&డ్మిన్ డాష్�Rబ�9ర్డ్", noIssues: "ఫిర్యాదులు ల�!వు.", loc: "స్థాన�", statusLabel: "స్థితి",
+    audioInstructions: {
+      pageWelcome: "Complaint Desk �"ి స్వా�త�. ఫార� ప�రి��aడాని�"ి స��aనలు వినడాని�"ి ఏద��నా ఫ౬ల్డ్�Rప�� �"్లి�"్ �a�!య�డి.",
+      identifier: "మ౬ నమ�9దు �a�!సిన �!మ� యిల్ �aిరునామా ల�!దా ఫ�9న్ న�బర్ నమ�9దు �a�!య�డి.",
+      password:   "మ౬ సుర�"్షిత పాస్�Rవర్డ్ నమ�9దు �a�!య�డి.",
+      fullName:   "మ౬ ID ల�9 �0న్న�x్లు మ౬ ప�ర్తి ప�!రు నమ�9దు �a�!య�డి.",
+      phone:      "మ౬రు నమ�9దు �a�!యాలను�"ు��xున్న మ�`బ��ల్ న�బర్ నమ�9దు �a�!య�డి.",
+      email:      "మ౬ �!మ� యిల్ �aిరునామా నమ�9దు �a�!య�డి. �!�"్�"డ ��" ధ౒వ౬�"రణ లి��"్ ప�పబడుతు�ది.",
+      otp:        "మ౬ ఫ�9న్�R�"ు ప�పబడిన 6-�&��"� ల OTP నమ�9దు �a�!య�డి.",
+      title:      "మ౬ ఫిర్యాదు వివరి��a�! �"్లుప్త శ౬ర్షి�" రాయ�డి.",
+      category:   "మ౬ ఫిర్యాదు�"ు బా�ా సరిప�9య�! వర్�ాన్ని �}��aు�"�9�డి.",
+      description:"మ౬ ఫిర్యాదును వివర��ా వివరి��a�డి. ఏ� �Sరి�ి�ది, �}ప్పుడు మరియు �}�"్�"డ �Sరి�ి�ద�9 రాయ�డి.",
+      location:   "మ౬ ప్రస్తుత GPS స్థానాన్ని స్వయ��aాల�"��ా రి�"ార్డ్ �a�!యడాని�"ి �� బ�xన్�Rప�� �"్లి�"్ �a�!య�డి.",
+      audioRec:   "మ౬ మ�R�ి�" వా��్మ�లాన్ని � డియ�9 సా�"్ష్య��ా రి�"ార్డ్ �a�!యడాని�"ి �"్లి�"్ �a�!య�డి.",
+      evidence:   "సా�"్ష్య��ా ఫ�9�x�9లు, వ౬డియ�9లు, పత్రాలు ల�!దా � డియ�9 ఫ��ల్�Rలు �&ప్�Rల�9డ్ �a�!య�డి.",
+      anonymous:  "మ౬ �ుర్తి�పు బహిర్�త� �a�!య�"ు�డా ఫిర్యాదు సమర్పి��aాల��x�! �� �a� �"్�Rబా�"్స్ �a� �"్ �a�!య�డి.",
+      trackId:    "సమర్పి��aిన తర్వాత మ౬�"ు లభి��aిన ఫిర్యాదు ID నమ�9దు �a�!య�డి, �0దాహరణ: CD-2026-123456.",
+    }
+  }
+};
+
+// FEATURE 6 � Speaker icon button defined OUTSIDE render to avoid re-creation errors
+const SpeakBtn = ({ text, lc }) => (
+  <button
+    type="button"
+    onClick={() => speak(text, lc)}
+    title="Click to hear instructions"
+    className="ml-2 text-blue-400 hover:text-blue-600 transition-colors text-base select-none"
+    aria-label="Audio help"
+  >�x`</button>
+);
+// --- Component ----------------------------------------------------------------
+export default function App() {
+  const [view, setView] = useState('login');
+  const [history, setHistory] = useState([]);
+
+  const [lang, setLang] = useState('en');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const [loginForm, setLoginForm] = useState({ identifier: '', password: '', role: 'user' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', password: '', otp: '', role: 'user' });
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const [complaints, setComplaints] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
+  const [issueForm, setIssueForm] = useState({
+    title: '', category: 'Theft', description: '', lat: null, lng: null, isAnonymous: false, evidence: null
+  });
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const mediaRecorderRef = useRef(null);
+
+  const [trackId, setTrackId] = useState('');
+  const [trackedComplaint, setTrackedComplaint] = useState(null);
+
+  const ct = t[lang] || t['en'];
+  const lc = langCodeMap[lang] || 'en-US'; 
+  const ai = ct.audioInstructions; 
+
+
+  // --- Navigation -----------------------------------------------------------
+  const navigateTo = (newView) => {
+    setHistory(prev => [...prev, view]);
+    setView(newView);
+  };
+
+  const handleBack = () => {
+    if (history.length > 0) {
+      const prev = history[history.length - 1];
+      setHistory(history.slice(0, -1));
+      setView(prev);
+    }
+  };
+
+  // --- Global audio guide (top-right speaker button) ------------------------
+  const playAudio = () => {
+    if ('speechSynthesis' in window) {
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
+      } else {
+        const utterance = new SpeechSynthesisUtterance(hindiAudioScript);
+        utterance.lang = 'hi-IN';
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = (e) => { console.error('Audio Error:', e); setIsPlaying(false); };
+        setIsPlaying(true);
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  };
+
+  // Stop global audio on view / language change
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      setIsPlaying(false);
+    };
+  }, [view, lang]);
+
+  // FEATURE 5 � Page-level greeting when login view opens
+  useEffect(() => {
+    if (view === 'login') {
+      const timer = setTimeout(() => speak(ai.pageWelcome, lc), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [view, lang]);
+
+  // --- Animation variants ---------------------------------------------------
+  const pageVariants = {
+    initial: { opacity: 0, scale: 0.95, y: 30 },
+    in:      { opacity: 1, scale: 1,    y: 0  },
+    out:     { opacity: 0, scale: 0.95, y: -30 }
+  };
+
+  // --- Auth handlers --------------------------------------------------------
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+        if (data.user.role === 'admin') { fetchComplaints(); navigateTo('adminDashboard'); } else navigateTo('complaintForm');
+      } else { alert(data.error); }
+    } catch (err) {
+      console.error('Login error:', err);
+    }
+  };
+
+  const handleRegisterStep1 = async (e) => {
+    e.preventDefault();
+    if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+      alert("Phone number must be exactly 10 digits and start with 6, 7, 8, or 9.");
+      return;
+    }
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/register-step1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.name, phone: formData.phone, email: formData.email, password: formData.password, role: formData.role })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('OTP sent to your email. Check your inbox to complete verification.');
+        navigateTo('registerPending');
+      } else { alert(data.error); }
+    } catch (err) { console.log(err); alert('Failed to connect to server.'); }
+  };
+
+  const handleVerifyEmailOTP = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone, emailOtp: formData.emailOtp })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        navigateTo('login'); // user must login after verification
+      } else { alert(data.error); }
+    } catch (err) { alert('Error verifying email OTP'); }
+  };
+
+  const handleUpdateStatus = async (complaintId, newStatus) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/complaints/' + complaintId + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComplaints(prev => prev.map(c => c._id === complaintId ? { ...c, status: newStatus } : c));
+      } else { alert('Failed to update status: ' + data.error); }
+    } catch (err) { alert('Error updating status'); }
+  };
+
+  const handleAudioRecording = async () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        const chunks = [];
+        mediaRecorderRef.current.ondataavailable = e => chunks.push(e.data);
+        mediaRecorderRef.current.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          setAudioBlob(blob);
+        };
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (err) { alert('Microphone access denied'); }
+    }
+  };
+
+  const handleGetLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setIssueForm({ ...issueForm, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => alert("Location permission denied.")
+      );
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0)
+      setIssueForm({ ...issueForm, evidence: e.target.files[0] });
+  };
+
+  const handleIssueSubmit = async (e) => {
+    e.preventDefault();
+    const dataForm = new FormData();
+    dataForm.append('title',       issueForm.title);
+    dataForm.append('category',    issueForm.category);
+    dataForm.append('description', issueForm.description);
+    if (issueForm.lat) { dataForm.append('lat', issueForm.lat); dataForm.append('lng', issueForm.lng); }
+    dataForm.append('isAnonymous', issueForm.isAnonymous);
+    if (currentUser) dataForm.append('userId', currentUser._id);
+    if (issueForm.evidence) dataForm.append('evidenceFile', issueForm.evidence);
+    if (audioBlob)          dataForm.append('audioEvidence', audioBlob, 'audio.webm');
+    try {
+      const res  = await fetch('http://localhost:5000/api/complaints', { method: 'POST', body: dataForm });
+      const data = await res.json();
+      if (data.success) {
+        alert("Complaint Submitted! ID: " + data.data.complaintId);
+        setIssueForm({ title: '', category: 'Theft', description: '', lat: null, lng: null, isAnonymous: false, evidence: null });
+        setAudioBlob(null);
+        setView('tracking');
+        setTrackId(data.data.complaintId);
+        trackComplaint(data.data.complaintId);
+      } else { alert(data.error); }
+    } catch (err) { alert("Mock Success. Backend offline."); setView('login'); }
+  };
+
+  const fetchComplaints = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/complaints');
+      const data = await res.json();
+      if (data.success) setComplaints(data.data);
+    } catch (err) { console.log(err); }
+  };
+
+
+const trackComplaint = async (idOfComp) => {
+    const id = idOfComp || trackId;
+    if (!id) return;
+    try {
+      const res  = await fetch('http://localhost:5000/api/complaints/track/' + id);
+      const data = await res.json();
+      if (data.success) setTrackedComplaint(data.data);
+      else setTrackedComplaint(null);
+    } catch (err) { setTrackedComplaint({ title: 'Sample Title', status: 'Submitted', category: 'Theft', evidenceStatus: 'Pending' }); }
+  };
+
+  // --- Shared UI helpers ----------------------------------------------------
+  const renderHeaderControls = () => (
+    <div className="flex items-center space-x-3 absolute top-6 right-6 z-50">
+      <button onClick={() => navigateTo('help')} className="p-3 bg-white/40 backdrop-blur-md rounded-[30px] font-bold shadow-sm border border-white/50 text-slate-800 hover:bg-white">{ct.demoTitle}</button>
+      <div className="bg-white/40 backdrop-blur-md rounded-[30px] p-1.5 flex shadow-sm border border-white/50">
+        {['en', 'hi', 'te'].map(l => (
+          <button key={l} onClick={() => setLang(l)} className={`px-4 py-2 rounded-[25px] font-bold transition-all text-sm uppercase ${lang === l ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>{l}</button>
+        ))}
+      </div>
+      <button onClick={playAudio} className={`p-3 rounded-[30px] shadow-sm transition-all backdrop-blur-md border ${isPlaying ? 'bg-blue-100/90 border-blue-200 text-blue-700' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80 hover:shadow-md'}`} title="Hindi Audio Guide">
+        {isPlaying ? <HiOutlineSpeakerWave className="w-6 h-6 animate-pulse" /> : <HiOutlineSpeakerXMark className="w-6 h-6" />}
+      </button>
+    </div>
+  );
+
+  const renderModuleHeader = (title) => (
+    <div className="flex items-center justify-between mb-8 border-b border-slate-200/50 pb-4">
+      <button onClick={handleBack} className="flex items-center text-slate-500 hover:text-blue-600 font-bold transition-colors bg-white/40 px-4 py-2 rounded-[30px] shadow-sm hover:shadow-md border border-white/50">
+        <HiArrowLeft className="w-5 h-5 mr-2" /> {ct.back}
+      </button>
+      <h2 className="text-2xl font-black text-slate-800">{title}</h2>
+    </div>
+  );
+
+  // --- JSX -----------------------------------------------------------------
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-50 font-sans text-slate-800 overflow-hidden relative flex flex-col items-center justify-center">
+
+      <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-[50%] bg-blue-400/20 blur-[80px] pointer-events-none" />
+      <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] rounded-[50%] bg-purple-400/20 blur-[80px] pointer-events-none" />
+
+      {renderHeaderControls()}
+
+      <main className="w-full max-w-7xl px-4 sm:px-6 z-10 py-16 flex justify-center items-center flex-1">
+        <AnimatePresence mode="wait">
+
+          {/* ���� LOGIN ���� */}
+          {view === 'login' && (
+            <motion.div key="login" variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.5 }} className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+
+              <div className={`${glassCard} flex flex-col items-center justify-center text-center !p-10 border-indigo-100`}>
+                <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                  <HiVideoCamera className="w-12 h-12" />
+                </div>
+                <h2 className="text-3xl font-black text-slate-800 mb-2">{ct.demoTitle}</h2>
+                <p className="text-slate-500 font-medium mb-6">{ct.demoDesc}</p>
+                
+                <div 
+                  className="w-full h-48 bg-slate-900/10 rounded-2xl flex flex-col items-center justify-center border border-dashed border-slate-300 mb-4 cursor-pointer hover:bg-blue-50 transition-all group relative overflow-hidden" 
+                  onClick={() => navigateTo('help')}
+                >
+                  <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 transition-colors" />
+                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform z-10">
+                    <HiVideoCamera className="w-8 h-8 text-white ml-0.5" />
+                  </div>
+                  <span className="text-blue-600 font-black uppercase tracking-widest text-xs mt-4 group-hover:text-blue-700 transition-colors z-10 transition-all">Play Accessibility Help</span>
+                </div>
+
+                <button type="button" onClick={() => navigateTo('tracking')} className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold py-3 px-6 rounded-[30px] shadow-sm transition-all w-full flex justify-center items-center">
+                  <HiOutlineDocumentText className="w-6 h-6 mr-2" /> {ct.trackTitle}
+                </button>
+              </div>
+
+              <div className={`${glassCard} !p-10 border-blue-100`}>
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="bg-blue-600 p-3 rounded-[20px] shadow-lg shadow-blue-200/50"><HiShieldCheck className="w-8 h-8 text-white" /></div>
+                  <h1 className="text-3xl font-black tracking-tight text-slate-800">{ct.appTitle}</h1>
+                </div>
+                <p className="text-slate-500 font-medium mb-6">{ct.welcome}</p>
+
+                <div className="mb-6 p-1 bg-white/50 backdrop-blur-sm rounded-2xl flex border border-white/60 shadow-inner">
+                  {['user', 'admin'].map(r => (
+                    <button type="button" key={r} onClick={() => setLoginForm({ ...loginForm, role: r })} className={`flex-1 py-3 px-4 rounded-[15px] text-lg font-bold transition-all ${loginForm.role === r ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                      {r === 'user' ? ct.userRole : ct.adminRole}
+                    </button>
+                  ))}
+                </div>
+
+                <form className="space-y-4" onSubmit={handleLoginSubmit}>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.identifier, lc)}>
+                      {ct.loginIdentifier} <SpeakBtn text={ai.identifier} lc={lc} />
+                    </label>
+                    <input required placeholder={ct.loginIdentifier} value={loginForm.identifier} onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none transition-all shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.password, lc)}>
+                      {ct.password} <SpeakBtn text={ai.password} lc={lc} />
+                    </label>
+                    <input type="password" required placeholder={ct.password} value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none transition-all shadow-sm" />
+                  </div>
+                  <div className="pt-4 space-y-4">
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 rounded-[30px] shadow-[0_10px_20px_-10px_rgba(37,99,235,0.5)] transition-all text-xl">{ct.loginSecurely}</button>
+                    {loginForm.role === 'user' && (
+                      <button type="button" onClick={() => navigateTo('register')} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-[30px] shadow-lg transition-all text-lg">{ct.registerNew}</button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� REGISTER STEP 1 ���� */}
+          {view === 'register' && (
+            <motion.div key="reg1" variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.5 }} className="w-full max-w-lg mx-auto">
+              <div className={glassCard}>
+                {renderModuleHeader(ct.createAccount)}
+                <p className="text-slate-500 font-medium mb-6 px-1">{ct.step1}</p>
+                <form className="space-y-5" onSubmit={handleRegisterStep1}>
+                  {/* Role Selector */}
+                  <div className="mb-2 p-1 bg-white/50 backdrop-blur-sm rounded-2xl flex border border-white/60 shadow-inner">
+                    {['user', 'admin'].map(r => (
+                      <button type="button" key={r} onClick={() => setFormData({ ...formData, role: r })}
+                        className={`flex-1 py-3 px-4 rounded-[15px] text-base font-bold transition-all ${formData.role === r
+                          ? (r === 'admin' ? 'bg-slate-800 text-white shadow-sm' : 'bg-blue-600 text-white shadow-sm')
+                          : 'text-slate-500 hover:text-slate-700'}`}>
+                        {r === 'user' ? '�x� ' + ct.userRole : '�x:� ' + ct.adminRole}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.role === 'admin' && (
+                    <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-sm font-semibold">
+                      �a� Admin accounts require additional approval. Your account will be reviewed before activation.
+                    </div>
+                  )}
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.fullName, lc)}>
+                      {ct.fullName} <SpeakBtn text={ai.fullName} lc={lc} />
+                    </label>
+                    <input required placeholder={ct.fullName} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.phone, lc)}>
+                      {ct.phone1} <SpeakBtn text={ai.phone} lc={lc} />
+                    </label>
+                    <input required type="tel" placeholder={ct.phone1} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.email, lc)}>
+                      {ct.email2} <SpeakBtn text={ai.email} lc={lc} />
+                    </label>
+                    <input required type="email" placeholder={ct.email2} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-600 mb-1 ml-2 cursor-pointer" onClick={() => speak(ai.password, lc)}>
+                      {ct.password} <SpeakBtn text={ai.password} lc={lc} />
+                    </label>
+                    <input required type="password" placeholder={ct.password} value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  </div>
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-[30px] shadow-lg transition-all text-xl mt-4">{ct.sendOtp}</button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� OTP VERIFY ���� */}
+          {/* ���� EMAIL PENDING (NOW EMAIL OTP) ���� */}
+          {view === 'registerPending' && (
+            <motion.div key="reg3" variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.5 }} className="w-full max-w-md mx-auto">
+              <div className={`${glassCard} text-center`}>
+                {renderModuleHeader(ct.checkEmail)}
+                <div className="w-24 h-24 bg-blue-100/80 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white">
+                  <HiShieldCheck className="w-12 h-12 text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 mb-2">Final Email Verification</h2>
+                <p className="text-slate-600 font-medium mb-6">
+                  {ct.emailSent} <strong>{formData.email}</strong>. Enter the 6-digit Email OTP below.
+                </p>
+
+                <form onSubmit={handleVerifyEmailOTP}>
+                  <input required type="text" maxLength="6" value={formData.emailOtp || ''} onChange={e => setFormData({ ...formData, emailOtp: e.target.value })} className="w-full text-center tracking-[0.5em] px-6 py-6 text-4xl font-black rounded-[25px] border-2 border-white/80 bg-white/70 focus:bg-white focus:border-blue-500 outline-none shadow-inner mb-6 text-slate-800" placeholder="⬢⬢⬢⬢⬢⬢" />
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 rounded-[30px] shadow-lg transition-all text-xl">Verify Email OTP</button>
+                </form>
+
+                {/* Dev fallback � Gmail not configured yet */}
+                {formData.devVerifyLink && (
+                  <div className="mt-6 text-left bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                    <p className="text-sm font-bold text-amber-700 mb-2">�a� Dev Mode (Gmail not configured)</p>
+                    <p className="text-xs break-words">Your Email OTP is: {formData.devVerifyLink}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� COMPLAINT FORM ���� */}
+          {view === 'complaintForm' && (
+            <motion.div key="complaintForm" variants={pageVariants} initial="initial" animate="in" exit="out" className="w-full max-w-2xl mx-auto">
+              <div className={glassCard}>
+                {renderModuleHeader(ct.submitTitle)}
+                <form className="space-y-6" onSubmit={handleIssueSubmit}>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-700 mb-2 ml-2 uppercase tracking-wide cursor-pointer" onClick={() => speak(ai.title, lc)}>
+                      {ct.titleLabel} <SpeakBtn text={ai.title} lc={lc} />
+                    </label>
+                    <input required value={issueForm.title} onChange={e => setIssueForm({ ...issueForm, title: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-700 mb-2 ml-2 uppercase tracking-wide cursor-pointer" onClick={() => speak(ai.category, lc)}>
+                      {ct.catLabel} <SpeakBtn text={ai.category} lc={lc} />
+                    </label>
+                    <select required value={issueForm.category} onChange={e => setIssueForm({ ...issueForm, category: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm">
+                      {ct.categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-700 mb-2 ml-2 uppercase tracking-wide cursor-pointer" onClick={() => speak(ai.description, lc)}>
+                      {ct.descLabel} <SpeakBtn text={ai.description} lc={lc} />
+                    </label>
+                    <textarea required rows={4} value={issueForm.description} onChange={e => setIssueForm({ ...issueForm, description: e.target.value })} className="w-full px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm"></textarea>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button type="button" onClick={handleGetLocation} className={`flex items-center justify-center p-4 rounded-[25px] border-2 font-bold transition-all ${issueForm.lat ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80'}`}>
+                      <HiOutlineMapPin className="w-6 h-6 mr-2" /> {issueForm.lat ? ct.locGot : ct.locBtn}
+                      <SpeakBtn text={ai.location} lc={lc} />
+                    </button>
+                    <button type="button" onClick={handleAudioRecording} className={`flex items-center justify-center p-4 rounded-[25px] border-2 font-bold transition-all ${isRecording ? 'bg-red-100 text-red-600 border-red-300 animate-pulse' : (audioBlob ? 'bg-blue-100 text-blue-600 border-blue-300' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80')}`}>
+                      <HiOutlineMicrophone className="w-6 h-6 mr-2" /> {isRecording ? "Recording..." : (audioBlob ? ct.audioRecorded : ct.audioLabel)}
+                      <SpeakBtn text={ai.audioRec} lc={lc} />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center text-sm font-bold text-slate-700 mb-2 ml-2 uppercase tracking-wide cursor-pointer" onClick={() => speak(ai.evidence, lc)}>
+                      {ct.evidenceLabel} <SpeakBtn text={ai.evidence} lc={lc} />
+                    </label>
+                    <input type="file" accept="image/*,video/*,document/*" onChange={handleFileChange} className="w-full px-4 py-3 bg-white/50 border-2 border-white/60 rounded-[25px]" />
+                  </div>
+
+                  <div className="flex items-center mb-4 pl-2 mt-4">
+                    <input type="checkbox" id="anon" checked={issueForm.isAnonymous} onChange={e => setIssueForm({ ...issueForm, isAnonymous: e.target.checked })} className="w-5 h-5 rounded" />
+                    <label htmlFor="anon" className="ml-3 font-semibold text-slate-700 cursor-pointer" onClick={() => speak(ai.anonymous, lc)}>
+                      {ct.anonymousLabel}
+                    </label>
+                    <SpeakBtn text={ai.anonymous} lc={lc} />
+                  </div>
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-[30px] shadow-lg transition-all text-xl mt-4">{ct.submitBtn}</button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� ADMIN DASHBOARD ���� */}
+          {view === 'adminDashboard' && (
+            <motion.div key="dash" variants={pageVariants} initial="initial" animate="in" exit="out" className="w-full max-w-6xl mx-auto">
+              <div className={glassCard}>
+                {renderModuleHeader(ct.dashTitle)}
+                {complaints.length === 0 ? (
+                  <p className="text-center text-slate-500 py-10 font-medium text-lg">{ct.noIssues}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {complaints.map(issue => {
+                      const isSerious = issue.category === 'Violence' || issue.category === 'Harassment';
+                      return (
+                        <div key={issue._id} className={`rounded-[25px] p-1 shadow-sm transition-all overflow-hidden ${isSerious ? 'bg-red-500 p-[2px]' : 'bg-white/60 border border-white/80'}`}>
+                          {isSerious && (
+                            <div className="animate-pulse bg-red-600 text-white text-center font-bold text-xs py-1.5 uppercase tracking-widest flex items-center justify-center rounded-t-[20px]">
+                              <HiExclamationTriangle className="w-4 h-4 mr-2" /> HIGH PRIORITY COMPLAINT DETECTED
+                            </div>
+                          )}
+                          <div className="bg-white/90 p-6 rounded-[22px] flex flex-col">
+                            <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedId(expandedId === issue._id ? null : issue._id)}>
+                              <div>
+                                <h3 className="text-xl font-bold text-slate-800">{issue.title}</h3>
+                                <p className="text-sm font-semibold text-blue-600 mt-1 uppercase tracking-wide">{issue.category} ⬢ ID: {issue.complaintId}</p>
+                              </div>
+                              <button className="p-3 bg-slate-100 text-slate-600 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors">
+                                {expandedId === issue._id ? <HiChevronUp className="w-6 h-6" /> : <HiChevronDown className="w-6 h-6" />}
+                              </button>
+                            </div>
+                            <AnimatePresence>
+                              {expandedId === issue._id && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-6 mt-4 border-t border-slate-200">
+                                  <p className="text-slate-600 text-lg leading-relaxed mb-4">{issue.description}</p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                      <h4 className="font-bold text-sm text-slate-400 uppercase mb-2">Evidence Files</h4>
+                                      {issue.evidenceFiles?.length > 0 ? (
+                                        <ul className="list-disc pl-5">
+                                          {issue.evidenceFiles.map((ev, i) => <li key={i}><a href={`http://localhost:5000/${ev}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{ev.replace('uploads\\', '')}</a></li>)}
+                                        </ul>
+                                      ) : <p className="text-sm text-slate-500">No extra evidence uploaded.</p>}
+                                      {issue.audioEvidence && <div className="mt-2 text-blue-600 underline font-semibold"><a href={`http://localhost:5000/${issue.audioEvidence}`} target="_blank" rel="noreferrer">Download Audio Evidence</a></div>}
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-center">
+                                      <div className={`text-lg font-bold mb-2 flex items-center ${issue.evidenceStatus === 'Suspicious' ? 'text-red-600' : (issue.evidenceStatus === 'Verified' ? 'text-green-600' : 'text-amber-500')}`}>
+                                        Evidence Status: {issue.evidenceStatus || 'Needs Review'}
+                                      </div>
+                                      <div className="text-sm text-slate-500 font-semibold mb-2">Submitted By: {issue.userId ? issue.userId.name : 'Anonymous User'}</div>
+                                      <div className="text-sm text-slate-500 font-semibold mb-2 flex items-center">
+                                        <HiOutlineMapPin className="w-4 h-4 mr-1" />
+                                        {issue.location?.lat ? `${issue.location.lat}, ${issue.location.lng}` : 'Not Available'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-4 text-sm font-bold text-slate-500 bg-slate-50 p-4 rounded-xl">
+                                      <div className="flex flex-wrap gap-2 mt-3">
+                                        {['Pending','Verified','Unreviewed','Resolved'].map(s => (
+                                          <button key={s} onClick={() => handleUpdateStatus(issue._id, s)}
+                                            className={`px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
+                                              issue.status === s
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-white/70 text-slate-600 border-slate-200 hover:border-blue-400 hover:text-blue-600'
+                                            }`}>{s}</button>
+                                        ))}
+                                      </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� TRACKING ���� */}
+          {view === 'tracking' && (
+            <motion.div key="tracking" variants={pageVariants} initial="initial" animate="in" exit="out" className="w-full max-w-xl mx-auto">
+              <div className={glassCard}>
+                {renderModuleHeader(ct.trackTitle)}
+                <div className="flex space-x-2 mb-4">
+                  <input type="text" placeholder={ct.enterComplaintId} value={trackId} onChange={e => setTrackId(e.target.value)} className="flex-1 px-6 py-4 text-lg rounded-[25px] border-2 border-white/60 bg-white/50 focus:bg-white focus:border-blue-400 outline-none shadow-sm" />
+                  <button onClick={() => trackComplaint()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-[25px] shadow-sm">{ct.trackBtn}</button>
+                </div>
+                <div className="flex items-center mb-6 ml-2">
+                  <label className="text-sm text-slate-500 font-semibold cursor-pointer flex items-center" onClick={() => speak(ai.trackId, lc)}>
+                    {ct.enterComplaintId} <SpeakBtn text={ai.trackId} lc={lc} />
+                  </label>
+                </div>
+                {trackedComplaint ? (
+                  <div className="bg-white/80 p-6 rounded-[25px] border border-white/80 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-1">{trackedComplaint.title}</h3>
+                    <p className="text-sm text-slate-500 uppercase tracking-wide font-bold mb-4">{trackedComplaint.category}</p>
+                    <div className="bg-slate-50 p-4 rounded-xl mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-slate-500 font-semibold">Status</span>
+                        <span className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">{trackedComplaint.status}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-semibold">Evidence Verification</span>
+                        <span className={`font-bold px-3 py-1 rounded-full text-sm ${trackedComplaint.evidenceStatus === 'Verified' ? 'bg-green-100 text-green-700' : (trackedComplaint.evidenceStatus === 'Suspicious' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')}`}>{trackedComplaint.evidenceStatus || 'Needs Review'}</span>
+                      </div>
+                    </div>
+                    <p className="text-slate-600 mb-2">{trackedComplaint.description}</p>
+                  </div>
+                ) : (
+                  <p className="text-center text-slate-500 font-medium">{trackId ? "Complaint not found. Verify ID." : "Enter your standard CD-YYYY-XXXXX format ID to track."}</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ���� HELP ���� */}
+          {view === 'help' && (
+            <motion.div key="help" variants={pageVariants} initial="initial" animate="in" exit="out" className="w-full max-w-2xl mx-auto">
+              <div className={`${glassCard} text-center`}>
+                {renderModuleHeader(ct.demoTitle)}
+                <p className="text-slate-600 font-medium mb-8 text-lg">Watch below to learn how to register, login, and submit a complaint using Complaint Desk.</p>
+                <div className="w-full aspect-video bg-black rounded-[25px] flex items-center justify-center border-4 border-white shadow-xl mb-8 relative group overflow-hidden">
+                  <video 
+                    src="/videos/help-guide.mp4" 
+                    controls 
+                    className="w-full h-full object-cover"
+                    poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+
+

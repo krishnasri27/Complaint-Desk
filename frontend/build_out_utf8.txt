@@ -1,0 +1,108 @@
+﻿
+> frontend@0.0.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 4 modules transformed.
+node.exe : [31mΓ£ù[39m 
+Build failed in 686ms
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: ([31mΓ£  
+  ù[39m Build failed in 6   
+ 86ms:String) [], RemoteE    
+xception
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+[31merror during build:
+[31m[vite:esbuild] 
+Transform failed with 1 
+error:
+C:/Users/Cigiri Krishnasri/.g
+emini/antigravity/brain/743c1
+edf-85cc-45ff-a9fe-e4f6eb3413
+a3/online compliant/frontend/
+src/App.jsx:275:17: ERROR: 
+Expected ":" but found 
+"OTP"[31m
+file: [36mC:/Users/Cigiri Kr
+ishnasri/.gemini/antigravity/
+brain/743c1edf-85cc-45ff-a9fe
+-e4f6eb3413a3/online complian
+t/frontend/src/App.jsx:275:17
+[31m
+[33m
+[33mExpected ":" but found 
+"OTP"[33m
+273 |        if 
+(data.success) {
+274 |          const otpMsg 
+= data.devOtp
+275 |            ? Your OTP 
+is: \n\nEnter this code on 
+the next screen.
+    |                   ^
+276 |            : 'OTP 
+sent! Check the backend 
+terminal console for your 
+6-digit code.';
+277 |          alert(otpMsg);
+[31m
+    at failureErrorWithLog 
+(C:\Users\Cigiri Krishnasri\.
+gemini\antigravity\brain\743c
+1edf-85cc-45ff-a9fe-e4f6eb341
+3a3\online compliant\frontend
+\node_modules\esbuild\lib\mai
+n.js:1467:15)
+    at C:\Users\Cigiri Krishn
+asri\.gemini\antigravity\brai
+n\743c1edf-85cc-45ff-a9fe-e4f
+6eb3413a3\online compliant\fr
+ontend\node_modules\esbuild\l
+ib\main.js:736:50
+    at 
+responseCallbacks.<computed> 
+(C:\Users\Cigiri Krishnasri\.
+gemini\antigravity\brain\743c
+1edf-85cc-45ff-a9fe-e4f6eb341
+3a3\online compliant\frontend
+\node_modules\esbuild\lib\mai
+n.js:603:9)
+    at handleIncomingPacket 
+(C:\Users\Cigiri Krishnasri\.
+gemini\antigravity\brain\743c
+1edf-85cc-45ff-a9fe-e4f6eb341
+3a3\online compliant\frontend
+\node_modules\esbuild\lib\mai
+n.js:658:12)
+    at Socket.readFromStdout 
+(C:\Users\Cigiri Krishnasri\.
+gemini\antigravity\brain\743c
+1edf-85cc-45ff-a9fe-e4f6eb341
+3a3\online compliant\frontend
+\node_modules\esbuild\lib\mai
+n.js:581:7)
+    at Socket.emit 
+(node:events:508:20)
+    at addChunk (node:interna
+l/streams/readable:564:12)
+    at 
+readableAddChunkPushByteMode 
+(node:internal/streams/readab
+le:515:3)
+    at Readable.push (node:in
+ternal/streams/readable:395:5
+)
+    at Pipe.onStreamRead (nod
+e:internal/stream_base_common
+s:189:23)[39m

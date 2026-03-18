@@ -1,0 +1,6 @@
+﻿
+C:\Users\Cigiri Krishnasri\.gemini\antigravity\brain\743c1edf-85cc-45ff-a9fe-e4f6eb3413a3\online compliant\frontend\src\App.jsx
+  234:6  warning  React Hook useEffect has missing dependencies: 'ai.pageWelcome' and 'lc'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+Γ£û 1 problem (0 errors, 1 warning)
+
